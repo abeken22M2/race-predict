@@ -1,11 +1,3 @@
-// Template name
-issue template
-
-// About 
-Here is a template for creating an issue
-
-// Template content
-
 ## 目的
 このissueの目的を記載してください。
 ex) スタイルを修正するため.
