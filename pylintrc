@@ -1,0 +1,4 @@
+[MESSAGES CONTROL]
+disable =
+    # Flake8 で同じチェックをしているのでこちらでは無効にする。
+    line-too-long,
