@@ -1,0 +1,5 @@
+[flake8]
+# 下記のルールは Black と矛盾するため、無視する。
+# https://flake8.pycqa.org/en/latest/user/error-codes.html
+ignore = W503,E203
+max-line-length = 120
