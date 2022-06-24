@@ -3,26 +3,17 @@ import pickle
 import glob
 import csv
 import sys
-import re
 import os
 import time
 import tensorflow as tf
 import keras
 import optuna
 import matplotlib.pyplot as plt
-import lightgbm as lgb
-import optuna.integration.lightgbm as optuna_lgb
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
-from sklearn.multiclass import OneVsRestClassifier
 from tensorflow.keras import layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout, BatchNormalization
-from keras.utils import np_utils
 import tensorflow_addons as tfa
-from sklearn.preprocessing import StandardScaler
 
 
 class TransformerBlock(layers.Layer):
@@ -33,17 +24,6 @@ class TransformerBlock(layers.Layer):
         self.num_heads = num_heads
         self.ff_dim = ff_dim
         self.dropout_rate = dropout_rate
-        
-        # self.att = layers.MultiHeadAttention(
-        #     num_heads=num_heads, key_dim=embed_dim)
-        # self.ffn = keras.Sequential(
-        #     [layers.Dense(ff_dim, activation="relu"),
-        #      layers.Dense(embed_dim), ]
-        # )
-        # self.layernorm1 = layers.LayerNormalization()
-        # self.layernorm2 = layers.LayerNormalization()
-        # self.dropout1 = layers.Dropout(rate)
-        # self.dropout2 = layers.Dropout(rate)
         
         self.attention_block_list: List[List[tf.keras.models.Model]] = []
         for _ in range(hopping_num):
@@ -73,13 +53,6 @@ class TransformerBlock(layers.Layer):
         return config
 
     def call(self, inputs, training):
-        # attn_output = self.att(inputs, inputs)
-        # attn_output = self.dropout1(attn_output, training=training)
-        # out1 = self.layernorm1(inputs + attn_output)
-        # ffn_output = self.ffn(out1)
-        # ffn_output = self.dropout2(ffn_output, training=training)
-        # return self.layernorm2(out1 + ffn_output)
-    
         query = inputs
         for i, layers in enumerate(self.attention_block_list):
             attention_layer, output_normalization_attn, ffn_layer, output_normalization_ffn = tuple(layers)
@@ -120,7 +93,6 @@ class TokenAndPositionEmbedding(layers.Layer):
     
     
     
-    
 """
 Create transformer model
 embed_dim  # Embedding size for each token
@@ -140,7 +112,7 @@ def create_transformer_model(X_train, y_train, X_valid, y_valid, num_class, save
             y_train, num_class, Threshold_max_weight=9)
     else:
         class_weight = {}
-        for i in range(0, len(num_class)):
+        for i in range(0, num_class):
             class_weight[i] = 1
 
     inputs = layers.Input(shape=(X_train.shape[1],))
