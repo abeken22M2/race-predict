@@ -20,10 +20,6 @@ import logging
 logger = logging.getLogger(__name__) #ファイルの名前を渡す
 
 
-def my_makedirs(path):
-    if not os.path.isdir(path):
-        os.makedirs(path)
-
 def get_race_html():
     # 去年までのデータ
     for year in range(2008, now_datetime.year):
@@ -37,7 +33,7 @@ def get_race_html():
 def get_race_html_by_year_and_mon(year,month):
     with open(RACR_URL_DIR+"/"+str(year)+"-"+str(month)+".txt", "r") as f:
         save_dir = RACR_HTML_DIR+"/"+str(year)+"/"+str(month)
-        my_makedirs(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
         urls = f.read().splitlines()
 
         file_list = os.listdir(save_dir) # get all file names

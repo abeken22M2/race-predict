@@ -40,7 +40,7 @@ def train_test_time_split(dataflame, train_ratio=0.8):
     X =dataflame.sort_values("date")
     train_size = int(len(X) * train_ratio)
 
-    logger.info("split trian and test :{} (train_ratio:{})".format(X["date"][train_size] , train_ratio))
+    logger.info("split train and test :{} (train_ratio:{})".format(X["date"][train_size] , train_ratio))
 
     return X[0:train_size].copy().reset_index(drop=True), X[train_size:len(X)].copy().reset_index(drop=True)
 
@@ -92,7 +92,7 @@ def plot_history(history,name):
 
 
 def train_model(train_data,train_label,val_data,val_label,target_name,):
-    logger.info("start train!"))
+    logger.info("start train!")
     callbacks = []
     callbacks.append(EarlyStopping(monitor='val_loss', patience=3))
     callbacks.append(CSVLogger("model/{}_{}_history.csv".format(OWN_FILE_NAME,target_name)))
