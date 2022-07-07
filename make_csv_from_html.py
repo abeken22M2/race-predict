@@ -107,7 +107,7 @@ def make_csv_from_html_by_year(year):
                         html = f.read()
                         list = file_name.split(".")
                         race_id = list[-2]
-                        race_list, horse_list_list = get_rade_and_horse_data_by_html(race_id, html)
+                        race_list, horse_list_list = get_race_and_horse_data_by_html(race_id, html)
                         for horse_list in horse_list_list:
                             horse_se = pd.Series(horse_list, index=horse_df.columns)
                             horse_df.loc[len(horse_df)] = horse_se
@@ -124,7 +124,7 @@ def make_csv_from_html_by_year(year):
         logger.info("already have csv (" + str(year) + ")")
 
 
-def get_rade_and_horse_data_by_html(race_id, html):
+def get_race_and_horse_data_by_html(race_id, html):
     race_list = [race_id]
     horse_list_list = []
     soup = BeautifulSoup(html, "html.parser")
