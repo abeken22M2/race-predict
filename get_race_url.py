@@ -23,15 +23,16 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select,WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+from msedge.selenium_tools import  EdgeOptions, Edge
 URL = "https://db.netkeiba.com/?pid=race_search_detail"
 WAIT_SECOND = 5
 
 
 def get_race_url():
-    options = Options()
+    options = EdgeOptions()
+    options.use_chromium = True
     options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options) # mac はbrewでインストールしたのでpathはok
+    driver = Edge(options=options) # mac はbrewでインストールしたのでpathはok
     driver.implicitly_wait(10)
     # 去年までのデータ
     for year in range(2008, now_datetime.year):
