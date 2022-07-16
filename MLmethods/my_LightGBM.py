@@ -10,6 +10,7 @@ import time
 import lightgbm as lgb
 import numpy as np
 import optuna.integration.lightgbm as optuna_lgb
+import pandas as pd
 
 
 def my_lightgbm(X_train, y_train, X_valid, y_valid, num_class, objective, metric):
@@ -22,17 +23,20 @@ def my_lightgbm(X_train, y_train, X_valid, y_valid, num_class, objective, metric
         "metric": metric,
         "num_class": num_class,
         "is_unbalance": True,
-        "early_stopping_round": 3,
+        "learning_rate": 0.005,
         "verbosity": 0,
-        #'feature_pre_filter': False,
-        #'lambda_l1': 0.0,
-        #'lambda_l2': 0.0,
-        #'num_leaves': 136,
-        #'feature_fraction': 0.948,
-        #'bagging_fraction': 0.6223835318704922,
-        #'bagging_freq': 6,
-        #'min_child_samples': 20,
+        "feature_pre_filter": False,
+        "lambda_l1": 0.0,
+        "lambda_l2": 0.0,
+        "num_leaves": 222,
+        "feature_fraction": 0.4,
+        "bagging_fraction": 1.0,
+        "bagging_freq": 0,
+        "min_child_samples": 20,
+        "num_iterations": 1000,
         "force_col_wise": True,
+        "feature_pre_filter": False,
+        "early_stopping_round": 3,
     }
 
     # 上記のパラメータでモデルを学習する
@@ -57,7 +61,7 @@ def optuna_lightgbm(X_train, y_train, X_valid, y_valid, num_class, objective, me
         "verbosity": -1,
         "force_col_wise": True,
     }
-    opt = optuna_lgb.train(params, lgb_train, valid_sets=reg_eval)
+    opt = optuna_lgb.train(params, lgb_train, valid_sets=reg_eval, verbose_eval=False)
 
     # チューニングしたパラメータで，モデル作成
     print(f"調整したパラメータ\t{opt.params}")

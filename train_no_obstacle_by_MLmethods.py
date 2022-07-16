@@ -60,50 +60,50 @@ def label_split_and_drop(X_df, target_name):
     return X, Y
 
 
-def prepare_data_is_tansyo():
+def prepare_data_is_tansyo(load_csv):
     target_name = "is_tansyo"
-    final_df = pd.read_csv("csv/final_data.csv", sep=",")
+    final_df = pd.read_csv(load_csv, sep=",")
 
     train_ratio = 0.8
-    X = final_df[final_df["is_obstacle"] == 0].sort_values("date")
+    X = final_df[final_df["is_obstacle"] == 0].sort_values("date").drop(["is_obstacle"], axis=1)
     train_size = int(len(X) * train_ratio)
     train_df = X[0:train_size].copy().reset_index(drop=True)
     test_df = X[train_size : len(X)].copy().reset_index(drop=True)
 
     Y_train = train_df[target_name].values
+    header = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
     X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    sc = StandardScaler()
-    X_train = sc.fit_transform(X_train)
+    # sc = StandardScaler()
+    # X_train = sc.fit_transform(X_train)
 
     Y_test = test_df[target_name].values
     X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    sc = StandardScaler()
-    X_test = sc.fit_transform(X_test)
+    # X_test = sc.transform(X_test)
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, header
 
 
-def prepare_data_is_hukusyo():
+def prepare_data_is_hukusyo(load_csv):
     target_name = "is_hukusyo"
-    final_df = pd.read_csv("csv/final_data.csv", sep=",")
+    final_df = pd.read_csv(load_csv, sep=",")
 
     train_ratio = 0.8
-    X = final_df[final_df["is_obstacle"] == 0].sort_values("date")
+    X = final_df[final_df["is_obstacle"] == 0].sort_values("date").drop(["is_obstacle"], axis=1)
     train_size = int(len(X) * train_ratio)
     train_df = X[0:train_size].copy().reset_index(drop=True)
     test_df = X[train_size : len(X)].copy().reset_index(drop=True)
 
-    Y_train = train_df[target_name].values
-    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    sc = StandardScaler()
-    X_train = sc.fit_transform(X_train)
+    Y_train = train_df[target_name]  # .values
+    header = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
+    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1)  # .values
+    # sc = StandardScaler()
+    # X_train = sc.fit_transform(X_train)
 
-    Y_test = test_df[target_name].values
-    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    sc = StandardScaler()
-    X_test = sc.fit_transform(X_test)
+    Y_test = test_df[target_name]  # .values
+    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1)  # .values
+    # X_test = sc.transform(X_test)
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, header
 
 
 def plt_precision_recall_curve(precision, recall, thresholds, savepltname):
@@ -118,11 +118,11 @@ def plt_precision_recall_curve(precision, recall, thresholds, savepltname):
     plt.savefig(savepltname)
 
 
-def MLmethods_model_pred(target_name, MLmethod):
+def MLmethods_model_pred(load_csv, target_name, MLmethod):
     if target_name == "is_tansyo":
-        X_train, y_train, X_test, y_test = prepare_data_is_tansyo()
+        X_train, y_train, X_test, y_test, header = prepare_data_is_tansyo(load_csv)
     elif target_name == "is_hukusyo":
-        X_train, y_train, X_test, y_test = prepare_data_is_hukusyo()
+        X_train, y_train, X_test, y_test, header = prepare_data_is_hukusyo(load_csv)
     save_model_path = "model/{}_{}_{}_model.h5".format(OWN_FILE_NAME, target_name, MLmethod)
     savepltname = "model/{}_{}_{}_model.jpg".format(OWN_FILE_NAME, target_name, MLmethod)
 
@@ -173,6 +173,16 @@ def MLmethods_model_pred(target_name, MLmethod):
         )
         pickle.dump(model, open(os.path.splitext(save_model_path)[0] + ".pkl", "wb"))
         # model = pickle.load(open(os.path.splitext(save_model_path)[0] + ".pkl", "rb"))
+
+        # feature importance by lightGBM from "gain"
+        importance = model.feature_importance(importance_type="gain")
+        importance = pd.DataFrame(
+            np.array([importance, (importance / sum(importance))]).transpose(),
+            index=header,
+            columns=["importance", "importance_ratio"],
+        ).sort_values("importance", ascending=False)
+        importance.to_csv("predict/{}_importance_by_lightbm.csv".format(OWN_FILE_NAME))
+
         predict_proba_results = model.predict(X_test)
         predict_results = [0 if i < 0.6 else 1 for i in predict_proba_results]
 
@@ -194,14 +204,16 @@ if __name__ == "__main__":
             filename="logfile/" + OWN_FILE_NAME + ".logger.log", level=logging.INFO, format=formatter_func
         )
 
-        is_tansyo_se = MLmethods_model_pred("is_tansyo", "LightGBM")
-        is_hukusyo_se = MLmethods_model_pred("is_hukusyo", "LightGBM")
+        racecourse = "_tokyo"
+        load_csv = "csv/final_data{}.csv".format(racecourse)
+        is_tansyo_se = MLmethods_model_pred(load_csv, "is_tansyo", "LightGBM")
+        is_hukusyo_se = MLmethods_model_pred(load_csv, "is_hukusyo", "LightGBM")
 
         # 結果の保存
-        final_df = pd.read_csv("csv/final_data.csv", sep=",")
+        final_df = pd.read_csv(load_csv, sep=",")
         _, test_df = train_test_time_split_no_obstacle(final_df)
         predicted_test_df = pd.concat([test_df, is_tansyo_se, is_hukusyo_se], axis=1)
-        predicted_test_df.to_csv("predict/{}_predicted_test.csv".format(OWN_FILE_NAME), index=False)
+        predicted_test_df.to_csv("predict/{}_predicted_test{}.csv".format(OWN_FILE_NAME, racecourse), index=False)
 
         # send_line_notification(OWN_FILE_NAME + " end!")
     except Exception as e:
