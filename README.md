@@ -6,6 +6,8 @@
 - make_csv_from_html.py: htmlからレースデータや馬のデータを抽出してCSVにする
 - main.py: 以上のことを一度に実行する
 - data_clean.ipynb: 得られたcsvを整形する
+- get_pedigree.py: data_clean.ipynbで作成された cleaned_horse_data.csvを利用して，血統データを取得する
+- make_train_data.ipynb, make_train_data_for_each_racecourse.ipynb 学習データを作成する．
 - train_simple.py: 単純なモデルをkerasで作成する
 - train_timesplit.py: 時系列を考慮したクロスバリデーション
 - train_hyperas.py: hyperasを用いて自動パラメータチューニングを行う

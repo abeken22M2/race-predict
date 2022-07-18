@@ -1,5 +1,5 @@
 *.html
-/csv/
+/csv/*.csv
 /model/*predicted*.csv
 /predict/*predicted*.csv
 *.log
