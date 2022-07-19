@@ -5,4 +5,5 @@
 *.log
 *.gz
 .ipynb*
-__pycashe__
+__pycashe__/
+*.pyc
