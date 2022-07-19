@@ -93,14 +93,14 @@ def prepare_data_is_hukusyo(load_csv):
     train_df = X[0:train_size].copy().reset_index(drop=True)
     test_df = X[train_size : len(X)].copy().reset_index(drop=True)
 
-    Y_train = train_df[target_name]  # .values
+    Y_train = train_df[target_name].values
     header = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
-    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1)  # .values
+    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # sc = StandardScaler()
     # X_train = sc.fit_transform(X_train)
 
-    Y_test = test_df[target_name]  # .values
-    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1)  # .values
+    Y_test = test_df[target_name].values
+    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # X_test = sc.transform(X_test)
 
     return X_train, Y_train, X_test, Y_test, header
@@ -181,7 +181,7 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
             index=header,
             columns=["importance", "importance_ratio"],
         ).sort_values("importance", ascending=False)
-        importance.to_csv("predict/{}_importance_by_lightbm.csv".format(OWN_FILE_NAME))
+        importance.to_csv("predict/{}_importance_by_lightgbm.csv".format(OWN_FILE_NAME))
 
         predict_proba_results = model.predict(X_test)
         predict_results = [0 if i < 0.6 else 1 for i in predict_proba_results]

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)  # ファイルの名前を渡す
 def get_pedigree_data(horse_id):
     url = "https://db.netkeiba.com/horse/ped/" + str(horse_id) + "/"
     ped = pd.read_html(url)[0]
-    time.sleep(0.95)
+    time.sleep(1)
 
     return ped
 
@@ -50,9 +50,13 @@ def scrape_and_save_pedigree_updete():
     horse_id_df = horse_df["horse_id"]
     horse_id_df = horse_id_df.drop_duplicates()
 
+    print("total horse num: {}".format(horse_id_df.shape))
+
     if File_exist:
         already_load_data = pd.read_csv(save_file_path, sep=",")
         already_load_horse_id = already_load_data["horse_id"]
+
+        print("already got horse num: {}".format(already_load_horse_id.shape))
 
         horse_id_df = horse_id_df.to_list()
         for i in already_load_horse_id:
