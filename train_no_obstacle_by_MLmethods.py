@@ -168,9 +168,9 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
         predict_proba_results = model.predict(X_test)
         predict_results = np.argmax(predict_proba_results, 1)
     elif MLmethod.lower() == "lightgbm":
-        model = my_LightGBM.optuna_lightgbm(
-            X_train, y_train, X_valid, y_valid, num_class=1, objective="binary", metric="binary_logloss"
-        )
+        #model = my_LightGBM.optuna_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
+        model = my_LightGBM.my_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
+
         pickle.dump(model, open(os.path.splitext(save_model_path)[0] + ".pkl", "wb"))
         # model = pickle.load(open(os.path.splitext(save_model_path)[0] + ".pkl", "rb"))
 
@@ -183,8 +183,10 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
         ).sort_values("importance", ascending=False)
         importance.to_csv("predict/{}_importance_by_lightgbm.csv".format(OWN_FILE_NAME))
 
-        predict_proba_results = model.predict(X_test)
-        predict_results = [0 if i < 0.6 else 1 for i in predict_proba_results]
+        def sigmoid(x): return 1./(1. +  np.exp(-x))
+        predict_proba_results = sigmoid(model.predict(X_test))
+        predict_proba_results = np.array([i[0] for i in predict_proba_results])
+        predict_results = [0 if i < 0.5 else 1 for i in predict_proba_results]
 
     precision, recall, thresholds = precision_recall_curve(y_test, predict_proba_results, pos_label=1)
     plt_precision_recall_curve(precision, recall, thresholds, savepltname)
