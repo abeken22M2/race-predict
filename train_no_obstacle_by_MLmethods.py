@@ -20,9 +20,10 @@ my_token = os.environ["LINE_TOKEN"]
 
 import tensorflow as tf
 import tensorflow_addons as tfa
-from sklearn.metrics import confusion_matrix, precision_recall_curve
+from sklearn.metrics import confusion_matrix, log_loss, precision_recall_curve
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
 from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.callbacks import CSVLogger, EarlyStopping
 
 from MLmethods import Transformer, my_LightGBM
 
@@ -70,19 +71,13 @@ def prepare_data_is_tansyo(load_csv):
     test_df = X[train_size : len(X)].copy().reset_index(drop=True)
 
     Y_train = train_df[target_name].values
-    # header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
-    # X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).columns
-    X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
-    
+    header = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
+    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # sc = StandardScaler()
     # X_train = sc.fit_transform(X_train)
 
     Y_test = test_df[target_name].values
-    # X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
+    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # X_test = sc.transform(X_test)
 
     return X_train, Y_train, X_test, Y_test, header
@@ -99,19 +94,13 @@ def prepare_data_is_hukusyo(load_csv):
     test_df = X[train_size : len(X)].copy().reset_index(drop=True)
 
     Y_train = train_df[target_name].values
-    # header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
-    # X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).columns
-    X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
-    
+    header = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
+    X_train = train_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # sc = StandardScaler()
     # X_train = sc.fit_transform(X_train)
 
     Y_test = test_df[target_name].values
-    # X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
+    X_test = test_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # X_test = sc.transform(X_test)
 
     return X_train, Y_train, X_test, Y_test, header
@@ -179,8 +168,8 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
         predict_proba_results = model.predict(X_test)
         predict_results = np.argmax(predict_proba_results, 1)
     elif MLmethod.lower() == "lightgbm":
-        model = my_LightGBM.optuna_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
-        #model = my_LightGBM.my_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
+        #model = my_LightGBM.optuna_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
+        model = my_LightGBM.my_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
 
         pickle.dump(model, open(os.path.splitext(save_model_path)[0] + ".pkl", "wb"))
         # model = pickle.load(open(os.path.splitext(save_model_path)[0] + ".pkl", "rb"))
@@ -196,8 +185,8 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
 
         def sigmoid(x): return 1./(1. +  np.exp(-x))
         predict_proba_results = sigmoid(model.predict(X_test))
-        predict_proba_results = np.array([i[1] for i in predict_proba_results])
-        predict_results = [1 if i > 0.5 else 0 for i in predict_proba_results]
+        predict_proba_results = np.array([i[0] for i in predict_proba_results])
+        predict_results = [0 if i < 0.5 else 1 for i in predict_proba_results]
 
     precision, recall, thresholds = precision_recall_curve(y_test, predict_proba_results, pos_label=1)
     plt_precision_recall_curve(precision, recall, thresholds, savepltname)
