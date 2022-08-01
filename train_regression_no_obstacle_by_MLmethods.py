@@ -52,15 +52,15 @@ def label_split_and_drop(X_df, target_name):
     target_nameをYに分割して、Xから余分なカラムを削除し、numpyの形式にする
     """
     Y = X_df[target_name].values
-    X = X_df.drop(["is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
+    X = X_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
     # logger.info("train columns: {}".format(X_df.drop(['is_tansyo','is_hukusyo','date','race_id' ], axis=1).columns))
     sc = StandardScaler()
     X = sc.fit_transform(X)
     return X, Y
 
 
-def prepare_data_is_tansyo(load_csv):
-    target_name = "is_tansyo"
+def prepare_data_goal_time(load_csv):
+    target_name = "goal_time"
     final_df = pd.read_csv(load_csv, sep=",")
 
     train_ratio = 0.8
@@ -87,34 +87,6 @@ def prepare_data_is_tansyo(load_csv):
 
     return X_train, Y_train, X_test, Y_test, header
 
-
-def prepare_data_is_hukusyo(load_csv):
-    target_name = "is_hukusyo"
-    final_df = pd.read_csv(load_csv, sep=",")
-
-    train_ratio = 0.8
-    X = final_df[final_df["is_obstacle"] == 0].sort_values("date").drop(["is_obstacle"], axis=1)
-    train_size = int(len(X) * train_ratio)
-    train_df = X[0:train_size].copy().reset_index(drop=True)
-    test_df = X[train_size : len(X)].copy().reset_index(drop=True)
-
-    Y_train = train_df[target_name].values
-    # header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).columns
-    # X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    header = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).columns
-    X_train = train_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
-    
-    # sc = StandardScaler()
-    # X_train = sc.fit_transform(X_train)
-
-    Y_test = test_df[target_name].values
-    # X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id"], axis=1).values
-    
-    X_test = test_df.drop(["goal_time", "is_tansyo", "is_hukusyo", "date", "race_id", "odds_1", "odds_2", "odds_3", "popular_1", "popular_2", "popular_3"], axis=1).values
-    # X_test = sc.transform(X_test)
-
-    return X_train, Y_train, X_test, Y_test, header
 
 
 def plt_precision_recall_curve(precision, recall, thresholds, savepltname):
@@ -130,22 +102,13 @@ def plt_precision_recall_curve(precision, recall, thresholds, savepltname):
 
 
 def MLmethods_model_pred(load_csv, target_name, MLmethod):
-    if target_name == "is_tansyo":
-        X_train, y_train, X_test, y_test, header = prepare_data_is_tansyo(load_csv)
-    elif target_name == "is_hukusyo":
-        X_train, y_train, X_test, y_test, header = prepare_data_is_hukusyo(load_csv)
+    if target_name == "goal_time":
+        X_train, y_train, X_valid, y_valid, header = prepare_data_goal_time(load_csv)
+        
+    X_test = X_valid ###   注意！！！
+    
     save_model_path = "model/{}_{}_{}_model.h5".format(OWN_FILE_NAME, target_name, MLmethod)
     savepltname = "model/{}_{}_{}_model.jpg".format(OWN_FILE_NAME, target_name, MLmethod)
-
-    x0_where = np.where(y_test == 0)
-    x1_where = np.where(y_test == 1)
-    len_x0_where = len(x0_where)
-    len_x1_where = len(x1_where)
-    undersampling_num = len_x0_where if len_x0_where < len_x1_where else len_x1_where
-    x0_index = np.random.choice(x0_where[0], undersampling_num, replace=False)
-    x1_index = np.random.choice(x1_where[0], undersampling_num, replace=False)
-    X_valid = np.concatenate([X_test[x0_index], X_test[x1_index]])
-    y_valid = np.concatenate([y_test[x0_index], y_test[x1_index]])
 
     if MLmethod.lower() == "transformer":
         Transformer.create_transformer_model(
@@ -179,8 +142,8 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
         predict_proba_results = model.predict(X_test)
         predict_results = np.argmax(predict_proba_results, 1)
     elif MLmethod.lower() == "lightgbm":
-        model = my_LightGBM.optuna_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
-        #model = my_LightGBM.my_lightgbm(X_train, y_train, X_valid, y_valid, num_class=2)
+        model = my_LightGBM.optuna_lightgbm_regression(X_train, y_train, X_valid, y_valid)
+        #model = my_LightGBM.my_lightgbm_regression(X_train, y_train, X_valid, y_valid)
 
         pickle.dump(model, open(os.path.splitext(save_model_path)[0] + ".pkl", "wb"))
         # model = pickle.load(open(os.path.splitext(save_model_path)[0] + ".pkl", "rb"))
@@ -194,20 +157,21 @@ def MLmethods_model_pred(load_csv, target_name, MLmethod):
         ).sort_values("importance", ascending=False)
         importance.to_csv("predict/{}_importance_by_lightgbm.csv".format(OWN_FILE_NAME))
 
+        """
         def sigmoid(x): return 1./(1. +  np.exp(-x))
         predict_proba_results = sigmoid(model.predict(X_test))
         predict_proba_results = np.array([i[1] for i in predict_proba_results])
         predict_results = [1 if i > 0.5 else 0 for i in predict_proba_results]
-
-    precision, recall, thresholds = precision_recall_curve(y_test, predict_proba_results, pos_label=1)
-    plt_precision_recall_curve(precision, recall, thresholds, savepltname)
+        """
+        predict_results = model.predict(X_test)
+        
 
     # 混同行列
-    logger.info("{} confusion_matrix:\n{}\n".format(target_name, confusion_matrix(y_test, predict_results)))
+    # logger.info("{} confusion_matrix:\n{}\n".format(target_name, confusion_matrix(y_test, predict_results)))
 
     # 結果の保存のためにシリーズにする
-    predict_proba_results = predict_proba_results.flatten()
-    return pd.Series(data=predict_proba_results, name="predict_{}".format(target_name), dtype="float")
+    predict_proba_results = predict_results.flatten()
+    return pd.Series(data=predict_results, name="predict_{}".format(target_name), dtype="float")
 
 
 if __name__ == "__main__":
@@ -219,13 +183,12 @@ if __name__ == "__main__":
 
         racecourse = "_tokyo"
         load_csv = "csv/final_data{}.csv".format(racecourse)
-        is_tansyo_se = MLmethods_model_pred(load_csv, "is_tansyo", "LightGBM")
-        is_hukusyo_se = MLmethods_model_pred(load_csv, "is_hukusyo", "LightGBM")
+        goal_time_se = MLmethods_model_pred(load_csv, "goal_time", "LightGBM")
 
         # 結果の保存
         final_df = pd.read_csv(load_csv, sep=",")
         _, test_df = train_test_time_split_no_obstacle(final_df)
-        predicted_test_df = pd.concat([test_df, is_tansyo_se, is_hukusyo_se], axis=1)
+        predicted_test_df = pd.concat([test_df, goal_time_se], axis=1)
         predicted_test_df.to_csv("predict/{}_predicted_test{}.csv".format(OWN_FILE_NAME, racecourse), index=False)
 
         # send_line_notification(OWN_FILE_NAME + " end!")
